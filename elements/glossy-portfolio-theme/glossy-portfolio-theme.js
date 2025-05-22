@@ -35,7 +35,9 @@ export class GlossyPortfolioTheme extends DDDSuper(I18NMixin(HAXCMSLitElementThe
   constructor() {
     super();
     this.title = "";
-    this.currentView = "home";
+
+    this.activeLayout = "grid"; // text, media, listing
+    this.activeParent = ""; // set with activeItem, used for parentSlug and parentTitle
 
 
     this.t = this.t || {};
@@ -43,16 +45,51 @@ export class GlossyPortfolioTheme extends DDDSuper(I18NMixin(HAXCMSLitElementThe
       ...this.t,
       title: "Title",
     };
-    this.registerLocalization({
-      context: this,
-      localesPath:
-        new URL("./locales/glossy-portfolio.ar.json", import.meta.url).href +
-        "/../",
-      locales: ["ar", "es", "hi", "zh"],
+
+    // determines active layout based on following conditions:
+    // - if the current page has no child, it's Text
+    // - if the current page has a child, it's Listing
+    // - if the current page has a parent, it's Media
+    autorun((reaction) => {
+      const activeItem = toJS(store.activeItem);
+      // console.log(1, active);
+      if (activeItem) {
+        this.activeItem = activeItem;
+        // find parent of activeItem
+        this.activeParent = store.manifest.items.find((d) => activeItem.parent === d.id)||"";
+    
+ 
+        
+        const items = store.getItemChildren(store.activeId);
+        if (items) {
+          if (items.length > 0) {
+            this.setLayout("grid");
+
+            const categoryTags = []; 
+
+            // get tags for all children of activeItem, push to arrays
+            items.forEach(item => {
+              let tags = toJS(item.metadata.tags);
+              if (tags) {
+                const tagArray = tags.split(',');
+                if (tagArray[0] && !categoryTags.includes(tagArray[0])) {
+                  categoryTags.push(tagArray[0]);
+                }
+              }
+            });
+
+            this.items = [...items];
+            // this.categoryTags = [...categoryTags];
+
+          } else if (activeItem.parent) {
+            this.setLayout("media");
+          } else {
+            this.setLayout("text");
+          }
+        }
+      }
+      this.__disposer.push(reaction);
     });
-
-
-
   }
 
   // Lit reactive properties
