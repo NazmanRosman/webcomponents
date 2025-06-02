@@ -27,18 +27,6 @@ const PortfolioFonts = [
   "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap"
 ];
 
-function getPostLogo(item) {
-  // Check if item has a logo, otherwise use the image from metadata
-  if (item.metadata.image) {
-    return item.metadata.image;
-  } else if (store.manifest.metadata.theme.variables.image) {
-    return toJS(store.manifest.metadata.theme.variables.image);
-  } else {
-    // Fallback to the site's default image
-    return toJS(store.manifest.metadata.site.logo);
-  }
-}
-
 export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
 
   static get tag() {
@@ -49,14 +37,13 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
     super();
     this.siteTheme = UserScaffoldInstance.readMemory("HAXCMSSiteTheme") || "";
     this.dataPrimary = 2;
-    this.selectedTag = "";
     this.activeLayout = "text"; // text, media, listing
-    // mobile menu
-    this.menuOpen = false;
-    this.menuOverflow = [];
-    // footer info
-    this.lastUpdated = "";
-    this.copyrightYear = 0;
+    this.activeParent = ""; // set with activeItem, used for parentSlug and parentTitle
+    this.selectedTag = ""; // for filtering listing items
+    this.menuOpen = false; // for mobile menu button
+    this.menuOverflow = []; // items under the mobile menu
+    this.lastUpdated = ""; // for footer timestamp
+    this.copyrightYear = 0; // for footer copyright year
     // support for custom rendering of route html
     this.HAXSiteCustomRenderRoutes = {
       "x/tags": {
@@ -68,7 +55,6 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
     this.allTags = [];
     this.items = [];
     this.__disposer = this.__disposer || [];
-
     // gets site title and home link for site-title
     autorun((reaction) => {
       this.homeLink = toJS(store.homeLink);
@@ -117,28 +103,17 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
         let parent = store.manifest.items.find(
           (d) => active.parent === d.id,
         );
-
-        if (parent) {
-          const category = active.metadata.tags?.split(",").map(tag => tag.trim())?.[0] || null;
-          const siblings = store.manifest.items
-            .filter((item) => {
-              const itemCategory = item.metadata?.tags?.split(",").map(tag => tag.trim())?.[0] || null;
-              return (
-                item.parent === active.parent &&
-                itemCategory === category
-              );
-            });
-
-          const i = siblings.findIndex((item) => item.id === active.id);
-          this.prevSibling = siblings[i - 1] || null;
-          this.nextSibling = siblings[i + 1] || null;
-        } else {
+        if (!parent) {
           parent = "";
         }
 
         if (this.menuOpen) {
           this.menuOpen = false;
         }
+        
+        const siblings = toJS(store.siblingsPrevNext);
+        this.prevSibling = siblings.prev;
+        this.nextSibling = siblings.next;
 
         if (globalThis.document && globalThis.document.startViewTransition) {
           globalThis.document.startViewTransition(() => {
@@ -228,7 +203,7 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
       this.__disposer.push(reaction);
     });
 
-    // gets current and total page count
+    // gets current a total page count
     autorun((reaction) => {
       const counter = toJS(store.pageCounter);
       this.pageCurrent = counter.current;
@@ -416,7 +391,7 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
             --portfolio-earth-accentDark: #33691e;
             --portfolio-water-accentLight: #2a95cf;
             --portfolio-water-accentDark: #1e53a2;
-            --portfolio-fire-accentLight: #F49B99;
+            --portfolio-fire-accentLight: #ef5350;
             --portfolio-fire-accentDark: #8e2424;
             --portfolio-sand-accentLight: #f57c00;
             --portfolio-sand-accentDark: #6d4c41;
@@ -593,11 +568,6 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
         transition: .3s;
       }
 
-      .footer-link {
-        color: white !important;
-        transition: color .3s;
-      }
-
       .page-counter {
         font-family: var(--portfolio-font-body);
         font-size: 0.9rem;
@@ -648,7 +618,7 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
         bottom: -10px;
         left: 50%;
         width: 0;
-        height: clamp(0.1em, 5vw, 0.2em);
+        height: 4px;
         background-color: var(--portfolio-menuItemUnderline);
         transform: translateX(-50%);
         transition: all 0.2s ease-in-out;
@@ -832,6 +802,12 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
         right: 6px;
       }
 
+      .breadcrumb .theme-picker {
+        visibility: hidden;
+        margin-left: auto;
+        margin-right: 8px;
+      }
+
       /* Tags */
       .tag-list {
         flex-direction: row;
@@ -852,68 +828,56 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
       .tag-list li a {
         color: var(--portfolio-lightDark-blackWhite);
         font-weight: 400;
-        font-size: clamp(20px, 3vw, 27.5px);
+        font-size: 1.25em;
         text-transform: uppercase;
       }
 
       /* Breadcrumb */
-      .breadcrumb {
-        display: flex;
-        margin: 0 auto;
-        margin-top: 4px;
-        padding: 0 22px;
-        height: clamp(40px, 5vw, 60px);
+      .breadcrumb-wrapper {
         max-width: 1236px;
-        align-items: center;
-        gap: 10px;
-        color: var(--portfolio-lightDark-blackWhite);
-        font-family: var(--portfolio-font-header);
-        font-size: clamp(14px, 2vw, 18px);
+        margin: 0 auto;
+        padding: 0 22px;
         view-transition-name: location;
       }
 
-      .breadcrumb a {
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: clamp(40px, 5vw, 60px);
         color: var(--portfolio-lightDark-blackWhite);
-        text-decoration: none;
-        border-bottom: 2px solid var(--portfolio-lightDark-bg);
-        font-weight: 450;
-        transition: .3s ease-in-out;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        padding-bottom: 4px;
+        font-family: var(--portfolio-font-header);
+        font-size: clamp(14px, 2vw, 18px);
       }
 
-      .breadcrumb-arrow {
+      .breadcrumb a {
         color: var(--portfolio-accentHighlight);
-        transition: color .3s ease-in-out;
-        padding-bottom: 4px;
+        text-decoration: underline;
+        text-decoration-color: var(--portfolio-lightDark-bg);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 8px;
+        font-weight: 450;
+        transition: .3s ease-in-out;
       }
 
       .breadcrumb-parent {
         color: var(--portfolio-lightDark-blackWhite);
         transition: color .3s ease-in-out;
-        padding-bottom: 4px;
       }
 
       .breadcrumb-split {
         color: var(--portfolio-accentHighlight);
         transition: color .3s ease-in-out;
-        padding-bottom: 4px;
       }
 
       .breadcrumb-title {
         font-weight: bold;
         transition: color .3s ease-in-out;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        padding-bottom: 4px;
       }
 
       .breadcrumb a:hover,
       .breadcrumb a:focus{
-        border-bottom: 2px solid var(--portfolio-accentHighlight);
+        text-decoration-color: var(--portfolio-accentHighlight);
       }
       
       /* Layouts */
@@ -1101,9 +1065,15 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
         site-active-title h1 {
           font-size: 72px;
         }
+        header .theme-picker {
+          visibility: hidden;
+        }
+        .breadcrumb .theme-picker {
+          visibility: visible;
+        }
         .pagination {
           flex-direction: column;
-          gap: 16px;
+          gap: 12px;
         }
         .pagination-text {
           -webkit-line-clamp: 1;
@@ -1164,7 +1134,7 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
         --portfolio-lightGrey: var(--portfolio-fire-accentLight);
         --portfolio-accentHighlight: var(--portfolio-fire-accentLight);
         --portfolio-darkGrey: var(--portfolio-fire-accentDark);
-        --portfolio-lightDark-link: light-dark(var(--portfolio-fire-accentDark), var(--portfolio-fire-accentLight));
+        --portfolio-lightDark-link: light-dark(var(--portfolio-fire-accentDark), #F49B99);
         --portfolio-lightDark-cardTag: light-dark(
           var(--portfolio-fire-accentDark),
           var(--portfolio-fire-accentLight)
@@ -1216,18 +1186,15 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
       e.stopPropagation();
       e.stopImmediatePropagation();
     }
-    else {
-      e.currentTarget.blur();
-    }
   }
 
   _renderListing() {
-    // Filter content based on selected tag, if there is one
+    // Filter items based on selected tag
     const filteredItems = this.selectedTag
       ? this.items.filter(item => {
-          // Check if item has tags, and return it if it has the tag
           let tags = toJS(item.metadata.tags);
           if (tags) {
+            // Only include items with selected tag
             return tags.includes(this.selectedTag);
           }
           return false;
@@ -1238,7 +1205,6 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
     const filteredTags = this.selectedTag
       ? this.categoryTags.filter(tag => 
           filteredItems.some(item => {
-            // Will return true if at least one category has the selected tag
             let tags = toJS(item.metadata.tags);
             if (tags) {
               return tags.includes(tag);
@@ -1253,12 +1219,12 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
       ${filteredTags.length > 0
         ? filteredTags.map(
             (topTag) => html`
-              <h3 class="listing-category"><a tabindex="${this.editMode ? '-1' : '0'}" ?disabled="${this.editMode}" @click="${this.testEditMode}" href="x/tags?tag=${topTag.trim()}">${topTag}</a></h3>
+              <h3 class="listing-category"><a @click="${this.testEditMode}" href="x/tags?tag=${topTag.trim()}">${topTag}</a></h3>
               <div class="listing-grid">
                 ${filteredItems.filter(item => {
+                  // Check if current item has the top-level tag
                   let tags = toJS(item.metadata.tags);
                   if (tags) {
-                    // Return all items with the filtered tag
                     return tags.includes(topTag);
                   }
                   return false;
@@ -1267,11 +1233,9 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
                   let secondTag = toJS(item.metadata.tags).split(',')[1];
 
                   return html`
-                    <a tabindex="${this.editMode ? '-1' : '0'}" ?disabled="${this.editMode}" class="listing-card" href="${item.slug}" @click="${this.testEditMode}">
+                    <a class="listing-card" href="${item.slug}">
                       <div class="listing-cardimg">
-                        <img src="${getPostLogo(item)}" onerror="this.style.display='none'" alt="" loading="lazy"
-                            decoding="async"
-                            fetchpriority="low" />
+                        <img src="${item.metadata.image}" onerror="this.style.display='none'">
                       </div>
                       <div class="listing-cardtitle">${item.title}</div>
                       <div class="listing-cardtag">${secondTag}</div>
@@ -1285,20 +1249,16 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
 
       <!-- Render cards with no tags -->
       ${(!this.selectedTag && this.items.some(item => {
-        // Will return true if at least one item does not have tags
         return !toJS(item.metadata.tags);
       })) ? html`
         <h3 class="listing-category"></h3>
         <div class="listing-grid">
           ${this.items.filter(item => {
-            // Return all items with no tags
             return !toJS(item.metadata.tags);
           }).map(item => html`
-            <a class="listing-card" href="${item.slug}" tabindex="${this.editMode ? '-1' : '0'}" ?disabled="${this.editMode}" @click="${this.testEditMode}">
+            <a class="listing-card" href="${item.slug}">
               <div class="listing-cardimg">
-                <img src="${getPostLogo(item)}" onerror="this.style.display='none'" alt="" loading="lazy"
-                    decoding="async"
-                    fetchpriority="low" />
+                <img src="${item.metadata.image}" onerror="this.style.display='none'">
               </div>
               <div class="listing-cardtitle">${item.title}</div>
             </a>
@@ -1368,14 +1328,11 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
     return html`
       <header>
         <div class="header-inner">
-          <a tabindex="${this.editMode ? '-1' : '0'}" ?disabled="${this.editMode}" id="site-title" @click="${this.testEditMode}" href="${this.homeLink}">${this.siteTitle}</a>
+          <a id="site-title" @click=${(e) => e.currentTarget.blur()} href="${this.homeLink}">${this.siteTitle}</a>
           <nav>
             ${this.topItems.map(
                 (item) => html`
                   <a
-                    tabindex="${this.editMode ? '-1' : '0'}"
-                    ?disabled="${this.editMode}"
-                    @click="${this.testEditMode}"
                     class="menu-item ${this.activeItem && (item.id === this.activeItem.id || (this.ancestorItem && item.id === this.ancestorItem.id)) ? 'active' : ''}"
                     href="${item.slug}"
                   >
@@ -1387,7 +1344,7 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
           ${this.menuOverflow.length > 0
             ? html`
               <div class="mobile-menu-wrapper">
-                <button type="button" class=${this.menuOpen ? 'close' : ''} @click="${() => this.menuOpen = !this.menuOpen}">
+                <button type="button" class=${this.menuOpen ? 'close' : ''} @click=${() => this.menuOpen = !this.menuOpen}>
                   <span class="visually-hidden">Toggle Menu</span>
                   <div class="navicon"></div>
                 </button>
@@ -1398,9 +1355,7 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
                       <a
                         class="${this.activeItem && (item.id === this.activeItem.id || (this.ancestorItem && item.id === this.ancestorItem.id)) ? 'active' : ''}"
                         href="${item.slug}"
-                        tabindex="${this.editMode ? '-1' : '0'}"
-                        ?disabled="${this.editMode}"
-                        @click="${this.testEditMode}"
+                        @click=${(e) => e.currentTarget.blur()}
                       >
                         ${item.title}
                       </a>
@@ -1410,22 +1365,22 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
               </div>
             ` : ''}
         </div>
-        ${this.menuOverflow.length == 0
-            ? html`
-              <simple-icon-button-lite icon="image:style" class="theme-picker" @click="${this.toggleSiteTheme}"></simple-icon-button-lite>
-            ` : ''}
+        <simple-icon-button-lite icon="image:style" class="theme-picker" @click="${this.toggleSiteTheme}"></simple-icon-button-lite>
       </header>
       
-      <div class="breadcrumb">
-        ${this.activeParent
-          ? html`
-            <a tabindex="${this.editMode ? '-1' : '0'}" ?disabled="${this.editMode}" href=${this.activeParent.slug} @click="${this.testEditMode}">
-              <span class="breadcrumb-arrow">←</span>
-              <span class="breadcrumb-parent">${this.activeParent.title}</span>
-            </a>
-            <span class="breadcrumb-split">/</span>
-            <span class="breadcrumb-title">${this.activeItem.title}</span>
-          ` : ``}
+      <div class="breadcrumb-wrapper">
+        <div class="breadcrumb">
+          ${this.activeParent
+            ? html`
+              <a href=${this.activeParent.slug} @click=${(e) => e.currentTarget.blur()}>
+                <span>←</span>
+                <span class="breadcrumb-parent">${this.activeParent.title}</span>
+              </a>
+              <span class="breadcrumb-split">/</span>
+              <span class="breadcrumb-title">${this.activeItem.title}</span>
+            ` : ``}
+          <simple-icon-button-lite icon="image:style" class="theme-picker" @click="${this.toggleSiteTheme}"></simple-icon-button-lite>
+        </div>
       </div>
 
       ${this.activeLayout == "media"
@@ -1440,7 +1395,7 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
                 <!-- Render select for filtering tags (only appears if >1 tag OR 1 tag and items with no tag) -->
                 ${(this.categoryTags.length > 1 || (this.categoryTags.length > 0 && this.items.some(item => !item.metadata.tags)))
                   ? html`
-                    <select ?disabled="${this.editMode}" id="listing-filter" @change=${(e) => this.selectedTag = e.target.value}>
+                    <select id="listing-filter" @change=${(e) => this.selectedTag = e.target.value}>
                       <option value="" ?selected="${this.selectedTag === ''}">All</option>
                       ${this.categoryTags.map(
                         (tag) => html`
@@ -1460,7 +1415,7 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
                           ? this.activeTags
                           : this.activeTags.slice(1)
                         ).map(
-                          (item) => html`<li><a tabindex="${this.editMode ? '-1' : '0'}" @click="${this.testEditMode}" ?disabled="${this.editMode}" href="x/tags?tag=${item.trim()}">${item}</a></li>`
+                          (item) => html`<li><a @click="${this.testEditMode}" href="x/tags?tag=${item.trim()}">${item}</a></li>`
                         )}
                       </ul>
                   ` : ''}
@@ -1480,10 +1435,8 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
           ? html`
             <a
               class="prev"
-              tabindex="${this.editMode ? '-1' : '0'}"
-              ?disabled="${this.editMode}"
               href="${this.prevSibling.slug}"
-              @click="${this.testEditMode}"
+              @click=${(e) => e.currentTarget.blur()}
             >
               <simple-icon-lite icon="icons:chevron-left"></simple-icon-lite>
               <span class="pagination-text">${this.prevSibling.title}</span>
@@ -1492,11 +1445,9 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
           ${this.nextSibling
           ? html`
             <a
-              tabindex="${this.editMode ? '-1' : '0'}"
-              ?disabled="${this.editMode}"
               class="next"
               href="${this.nextSibling.slug}"
-              @click="${this.testEditMode}"
+              @click=${(e) => e.currentTarget.blur()}
             >
               <span class="pagination-text">${this.nextSibling.title}</span>
               <simple-icon-lite icon="icons:chevron-right"></simple-icon-lite>
@@ -1506,12 +1457,9 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
       </div>
 
       <footer>
-        <div> 
-          <div>Page number: ${this.pageCurrent} of ${this.pageTotal}</div>
-          <div>Site generated: ${this.lastUpdated}</div>
-          <div>Copyright: ${this.copyrightYear} ${store.manifest.author}</div>
-          <div><a class="footer-link" @click="${this.testEditMode}" tabindex="${this.editMode ? '-1' : '0'}" href="x/tags" ?disabled="${this.editMode}">View Content by Tag</a></div>
-        </div>
+        Page ${this.pageCurrent} of ${this.pageTotal}<br><br>
+        Site generated: ${this.lastUpdated}<br><br>
+        © ${this.copyrightYear} ${store.manifest.author}.
         <div
           class="license-body"
           xmlns:cc="${this.licenseLink}"
@@ -1536,7 +1484,7 @@ export class CleanPortfolioTheme extends DDDSuper(HAXCMSLitElementTheme) {
               ` : ``}
         </div>
         <simple-icon-button-lite icon="image:style" class="theme-picker" @click="${this.toggleSiteTheme}"></simple-icon-button-lite>
-        <scroll-button @click="${(e) => e.currentTarget.blur()}"></scroll-button>
+        <scroll-button @click=${(e) => e.currentTarget.blur()}></scroll-button>
       </footer>
     `;
   }

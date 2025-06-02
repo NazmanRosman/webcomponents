@@ -433,9 +433,14 @@ class CodeEditor extends SchemaBehaviors(LitElement) {
    */
   updateEditorValue() {
     var content = "";
+    var children = this.children;
     // check for template tag; it is prefered but if not there support as text string
-    if (this.children[0] && this.children[0].tagName !== "TEMPLATE") {
-      let children = this.childNodes;
+    if (
+      this.childNodes[0] &&
+      this.childNodes[0].tagName !== "TEMPLATE" &&
+      this.children.length === 0
+    ) {
+      children = this.childNodes;
       if (children.length > 0) {
         // loop through everything found in the slotted area and put it back in
         for (var j = 0, len2 = children.length; j < len2; j++) {

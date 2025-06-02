@@ -98,7 +98,7 @@ class LearnTwoTheme extends LTIResizingMixin(DDDSuper(HAXCMSLitElementTheme)) {
           padding: 0 0 16px;
         }
         :host([is-logged-in]) app-drawer {
-          top: 56px;
+          top: 48px;
         }
         site-git-corner {
           top: 0;

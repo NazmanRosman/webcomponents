@@ -49,30 +49,25 @@ export class AppHaxTopBar extends LitElement {
 
       .topBar {
         overflow: hidden;
-        background-color: light-dark(rgba(255, 255, 255, 0.95), rgba(0, 0, 0, 0.95));
+        background-color: var(--bg-color);
         color: var(--accent-color);
         height: var(--top-bar-height);
         text-align: center;
         vertical-align: middle;
-        border: 4px solid var(--app-hax-accent-color);
-        border-radius: var(--ddd-radius-md);
+        border-bottom: 3px solid var(--app-hax-accent-color);
         display: grid;
         grid-template-columns: 32.5% 35% 32.5%;
-        transition-delay: .9s;
-        transition: all .9s ease-in-out;
-      }
-      .topBar:hover, .topBar:focus-within {
-        box-shadow: var(--ddd-boxShadow-md);
-        background-color: light-dark(rgba(255, 255, 255, 1), rgba(0, 0, 0, 1));
+        transition: border-bottom 0.6s ease-in-out;
       }
 
       :host([edit-mode]) .topBar {
-        box-shadow: none;
-        border: 0;
-        border-bottom: 8px solid var(--app-hax-accent-color);
-        border-radius: 0;
-        background-color: light-dark(rgba(255, 255, 255, 1), rgba(0, 0, 0, 1));
+        border-bottom: 6px solid black;
       }
+
+      /* .topBar > div {
+        background-color: rgba(255, 255, 255, 0.8);
+        border: 1px solid black;
+      } */
 
       .topBar .left {
         text-align: left;

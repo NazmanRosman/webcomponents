@@ -19,7 +19,7 @@ hljs.registerLanguage("php", phpLang);
 hljs.registerLanguage("yaml", yaml);
 hljs.registerLanguage("xml", xml);
 hljs.registerLanguage("html", xml);
-globalThis["hljs"] = hljs;
+window["hljs"] = hljs;
 highlightjs_line_numbers();
 
 /**
@@ -143,37 +143,35 @@ class CodeSample extends I18NMixin(LitElement) {
     ];
   }
 
-  getMinHeight() {
-    if (this.shadowRoot && this.shadowRoot.querySelector("#code-container")) {
-      if (this.shadowRoot.querySelector("#code-container").getBoundingClientRect().height > 250) {
-        return this.shadowRoot.querySelector("#code-container").getBoundingClientRect().height + "px"
-      }
-    }
-    return "250px";    
-  }
-
   // render function
   render() {
-    return html` ${this._haxstate
-        ? html`<code-editor language="${this.type}" style="--monaco-element-iframe-height:${this.getMinHeight()};"></code-editor>`
-        : ``}
-      <div class="code-sample-wrapper">
-        <div id="theme"></div>
-        <div id="demo" class="demo"></div>
-        <slot></slot>
-        <div id="code-container">
-          <button
-            type="button"
-            ?hidden="${!this.copyClipboardButton}"
-            id="copyButton"
-            title="${this.t.copyToClipboard}"
-            @click="${this._copyToClipboard}"
-          >
-            ${this.t.copy}
-          </button>
-          <pre id="code"></pre>
-        </div>
-      </div>`;
+    return html`
+    ${this._haxstate ? html`<code-editor language="${this.type}"></code-editor>` : ``}
+    <div class="code-sample-wrapper">
+      <div id="theme"></div>
+      <div id="demo" class="demo"></div>
+      <slot></slot>
+      <div id="code-container">
+        <button
+          type="button"
+          ?hidden="${!this.copyClipboardButton}"
+          id="copyButton"
+          title="${this.t.copyToClipboard}"
+          @click="${this._copyToClipboard}"
+        >${this.t.copy}</button>
+        <pre id="code"></pre>
+      </div>
+    </div>`;
+  }
+
+  /**
+   * set up the editableTable to behave as the node itself
+   */
+  setupCodeEditor(editor) {
+    this.activeNode = editor;
+    setTimeout(() => {
+      editor.focus();
+    }, 0);
   }
 
   // haxProperty definition
@@ -327,27 +325,21 @@ const great = "example";</template>`,
       gizmoRegistration: "haxgizmoRegistration",
       inlineContextMenu: "haxinlineContextMenu",
       activeElementChanged: "haxactiveElementChanged",
-      editModeChanged: "haxeditModeChanged",
-      preProcessNodeToContent: "haxpreProcessNodeToContent",
+      editModeChanged: "haxEditModeChanged",
     };
   }
-  /**
- * Ensure fields don't pass through to HAX if in that context
- */
-  haxpreProcessNodeToContent(node) {
-    return node;
-  }
-
   haxeditModeChanged(value) {
     this._haxstate = value;
-    if (!value && this.shadowRoot) {
-      const codeEditor = this.shadowRoot.querySelector("code-editor");
-      if (codeEditor) {
-        this.innerHTML = `<template preserve-content="preserve-content">${codeEditor.getValueAsNode().innerHTML}</template>`;
+    if (!value) {
+      const codeSampleEditor = this.shadowRoot.querySelector(
+        "code-editor",
+      );
+      if (codeSampleEditor) {
+        this.innerHTML = `<template preserve-content="preserve-content">${codeSampleEditor.getValueAsNode().innerHTML}</template>`;
       }
     }
   }
-
+  
   // ensure that we are in edit mode as soon as we activate this element
   haxactiveElementChanged(element, value) {
     if (value) {
@@ -518,16 +510,20 @@ if ($MrTheCheat) {
       if (propName === "editMode") {
         if (this.editMode) {
           import("@haxtheweb/code-editor/code-editor.js").then((module) => {
-            const codeEditor =
-              this.shadowRoot.querySelector("code-editor");
-            if (codeEditor) {
-              codeEditor.innerHTML = this.innerHTML;
+            const codeSampleEditor = this.shadowRoot.querySelector(
+              "code-editor",
+            );
+            if (codeSampleEditor) {
+              codeSampleEditor.innerHTML = this.innerHTML;
             }
           });
-        } else {
-          const codeEditor = this.shadowRoot.querySelector("code-editor");
-          if (codeEditor) {
-            this.innerHTML = `<template preserve-content="preserve-content">${codeEditor.getValueAsNode().innerHTML}</template>`;
+        }
+        else {
+          const codeSampleEditor = this.shadowRoot.querySelector(
+            "code-editor",
+          );
+          if (codeSampleEditor) {
+            this.innerHTML = `<template preserve-content="preserve-content">${codeSampleEditor.getValueAsNode().innerHTML}</template>`;
           }
         }
       }
@@ -592,6 +588,7 @@ if ($MrTheCheat) {
     if (this._code && this._code.parentNode) {
       this._code.parentNode.removeChild(this._code);
     }
+
     let template = this._getCodeTemplate();
     if (!template) {
       template = globalThis.document.createElement("template");
@@ -600,16 +597,18 @@ if ($MrTheCheat) {
     }
     this._applyHighlightjs(template.innerHTML);
   }
-
   _getCodeTemplate() {
-    return (this.children[0] && this.children[0].tagName === "TEMPLATE") ? this.children[0] : null;
+    const nodes = this.children;
+    return [].filter.call(
+      nodes,
+      (node) => node.nodeType === Node.ELEMENT_NODE,
+    )[0];
   }
-
   _applyHighlightjs(str) {
     this._code = globalThis.document.createElement("code");
     if (this.type) this._code.classList.add(this.type);
     this._code.innerHTML = this._entitize(this._cleanIndentation(str));
-    if (this.shadowRoot && this.shadowRoot.querySelector("#code") && this._code && this._code.innerHTML) {
+    if (this.shadowRoot && this.shadowRoot.querySelector("#code")) {
       this.shadowRoot.querySelector("#code").appendChild(this._code);
       hljs.highlightBlock(this._code);
       hljs.initLineNumbersOnLoad({}, this.shadowRoot.querySelector("code"));

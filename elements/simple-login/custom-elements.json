@@ -581,6 +581,12 @@
           ],
           "events": [
             {
+              "name": "site-listing-video-activate",
+              "type": {
+                "text": "CustomEvent"
+              }
+            },
+            {
               "name": "simple-login-camera-icon-click",
               "type": {
                 "text": "CustomEvent"

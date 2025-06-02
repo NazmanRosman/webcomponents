@@ -74,9 +74,6 @@ class CleanOne extends LTIResizingMixin(
           --simple-tooltip-delay-in: 0;
           --simple-tooltip-border-radius: 0;
         }
-        :host([is-logged-in]) {
-          min-height: calc(100vh - 56px);
-        }
         site-git-corner {
           --site-git-corner-background: black;
         }
@@ -268,7 +265,7 @@ class CleanOne extends LTIResizingMixin(
           position: fixed;
         }
         :host([is-logged-in]) .pull-right {
-          margin-top: 56px;
+          margin-top: 48px;
         }
         #emailbtnwrapper {
           display: inline-flex;

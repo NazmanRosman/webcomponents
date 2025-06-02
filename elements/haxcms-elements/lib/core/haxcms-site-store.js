@@ -159,7 +159,8 @@ class Store {
       parentTitle: computed, // active page parent title
       ancestorTitle: computed, // active page ancestor title
       ancestorItem: computed, // active page ancestor
-      pageCounter: computed, // current and total page count
+      siblingsPrevNext: computed, // get previous and next siblingItems from activeItem
+      pageCounter: computed, // get current and total page number
       darkMode: observable, // dark mode pref
       soundStatus: observable, // toggle sounds on and off
       appReady: observable, // system is ready via firstUpdated of haxcms-site-builder
@@ -837,13 +838,9 @@ class Store {
   get siblingsPrevNext() {
     if (this.manifest.items && this.activeItem) {
       // filter siblings out from items using activeItem
-      const siblings = this.manifest.items.filter(
-        (item) => item.parent === this.activeItem.parent,
-      );
+      const siblings = this.manifest.items.filter((item) => item.parent === this.activeItem.parent);
       // find index of activeItem from siblings
-      const currentIndex = siblings.findIndex(
-        (item) => item.id === this.activeItem.id,
-      );
+      const currentIndex = siblings.findIndex((item) => item.id === this.activeItem.id);
       // return items at previous and next index of activeItem, if exists
       return {
         prev: siblings[currentIndex - 1] || null,
@@ -852,6 +849,7 @@ class Store {
     }
     return { prev: null, next: null };
   }
+
 
   get isLoggedIn() {
     // account for keypair storage issue since its a string bin

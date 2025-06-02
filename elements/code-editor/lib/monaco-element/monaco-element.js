@@ -23,8 +23,7 @@ class MonacoElement extends LitElement {
         iframe {
           border: none;
           width: 100%;
-          min-height: 250px;
-          height: var(--monaco-element-iframe-min-height, 100%);
+          height: 100%;
           padding: 0;
           margin: 0;
           resize: vertical;
@@ -284,10 +283,7 @@ class MonacoElement extends LitElement {
 
     handleMessage(message) {
       try {
-        let data = message.data;
-        if (typeof message.data === "string") {
-          data = JSON.parse(message.data);
-        }
+        const data = JSON.parse(message.data);
         this._handleMessage(data);
       } catch (error) {
         console.warn(error);

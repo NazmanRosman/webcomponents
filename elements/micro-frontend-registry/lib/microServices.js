@@ -459,8 +459,7 @@ export function enableExperimentalServices() {
     title: "Hydrate SSR",
     description: "Hydrate web components via lit server side",
     params: {
-      q: "blob of HTML or link to html file to load",
-      type: "link for processing as link otherwise unused",
+      html: "blob of HTML or link to html file to load",
     },
   });
 }

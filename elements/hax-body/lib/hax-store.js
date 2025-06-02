@@ -8,7 +8,6 @@ import {
   winEventsElement,
   getRange,
   stripMSWord,
-  removeBadJSEventAttributes,
   nodeToHaxElement,
   haxElementToNode,
   validURL,
@@ -3594,22 +3593,13 @@ Window size: ${globalThis.innerWidth}x${globalThis.innerHeight}
     // account for things that say NOT to save slot values
     var props = this.elementList[tag];
     var propvals = {};
-    // prevent these from being put in the DOM
-    var badAttributes = [
-      "data-hax-ray",
-      "data-hax-layout",
-      "data-hax-grid",
-      "data-hax-active",
-      '="true"',
-      "contenteditable",
-      "draggable",
-      "role",
-    ];
-    // remove any attributes that are not allowed
-    for (let i = 0; i < badAttributes.length; i++) {
-      node.removeAttribute(badAttributes[i]);
-    }
-    removeBadJSEventAttributes(node);
+    // something is causing this to be written out, so we're going to remove it
+    node.removeAttribute("data-hax-ray");
+    node.removeAttribute("data-hax-layout");
+    node.removeAttribute("data-hax-grid");
+    node.removeAttribute("data-hax-active");
+    node.removeAttribute('="true"');
+    node.removeAttribute("contenteditable");
     // grab all of the original's attributes, and pass them to the replacement
     for (let j = 0, l = node.attributes.length; j < l; ++j) {
       var nodeName = node.attributes.item(j).nodeName;
@@ -3818,10 +3808,14 @@ Window size: ${globalThis.innerWidth}x${globalThis.innerHeight}
             ) {
               content += await this.nodeToContent(slotnodes[j]);
             } else {
-              for (let i = 0; i < badAttributes.length; i++) {
-                slotnodes[j].removeAttribute(badAttributes[i]);
-              }
-              removeBadJSEventAttributes(slotnodes[j]);
+              slotnodes[j].removeAttribute("data-hax-ray");
+              slotnodes[j].removeAttribute("data-hax-layout");
+              slotnodes[j].removeAttribute("data-hax-grid");
+              slotnodes[j].removeAttribute("data-hax-active");
+              slotnodes[j].removeAttribute('="true"');
+              slotnodes[j].removeAttribute("contenteditable");
+              slotnodes[j].removeAttribute("draggable");
+              slotnodes[j].removeAttribute("role");
               content += slotnodes[j].outerHTML;
             }
           }
