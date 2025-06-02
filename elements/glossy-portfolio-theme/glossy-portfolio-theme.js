@@ -102,6 +102,10 @@ export class GlossyPortfolioTheme extends DDDSuper(I18NMixin(HAXCMSLitElementThe
         this.__disposer.push(reaction);
       }
     });
+<<<<<<< HEAD
+=======
+  
+>>>>>>> parent of b5bb7b0d80 (footer)
   
   
 >>>>>>> parent of b5bb7b0d80 (footer)
